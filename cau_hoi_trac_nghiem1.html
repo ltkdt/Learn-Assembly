@@ -1,0 +1,2036 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ôn Tập Kiến Trúc Máy Tính & Vi Xử Lý 8086</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap');
+    body {
+      font-family: 'Be Vietnam Pro', sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-indigo-700 text-white shadow-lg sticky top-0 z-30">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-3">
+      <div class="flex items-center space-x-3">
+        <i class="fa-solid fa-microchip text-2xl text-yellow-300"></i>
+        <div>
+          <h1 class="font-bold text-lg leading-tight">Hệ Thống Ôn Tập Vi Xử Lý & KTMT</h1>
+          <p class="text-xs text-indigo-200">Tổng hợp câu hỏi từ Quiz 1, Quiz 2 và Đề thi Giữa kỳ</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-4 bg-indigo-800/80 px-4 py-1.5 rounded-lg border border-indigo-600 text-sm">
+        <div>Đã làm: <span id="stat-answered" class="font-bold text-yellow-300">0</span>/<span id="stat-total">0</span></div>
+        <div class="h-4 w-px bg-indigo-500"></div>
+        <div>Đúng: <span id="stat-correct" class="font-bold text-emerald-400">0</span></div>
+        <div class="h-4 w-px bg-indigo-500"></div>
+        <div>Tỷ lệ: <span id="stat-percent" class="font-bold text-cyan-300">0%</span></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Control & Filter Bar -->
+  <main class="max-w-5xl mx-auto px-4 py-6">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
+      <div class="flex flex-col md:flex-row gap-3 justify-between items-stretch md:items-center">
+        <!-- Filter Tabs -->
+        <div class="flex flex-wrap gap-2 text-xs md:text-sm font-medium">
+          <button onclick="setFilter('all')" id="tab-all" class="filter-tab px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition">Tất cả (<span id="count-all">0</span>)</button>
+          <button onclick="setFilter('quiz1')" id="tab-quiz1" class="filter-tab px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition">Quiz 1 (<span id="count-quiz1">0</span>)</button>
+          <button onclick="setFilter('quiz2')" id="tab-quiz2" class="filter-tab px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition">Quiz 2 (<span id="count-quiz2">0</span>)</button>
+          <button onclick="setFilter('gkvxl')" id="tab-gkvxl" class="filter-tab px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition">Giữa kỳ VXL (<span id="count-gkvxl">0</span>)</button>
+          <button onclick="toggleOnlyWrong()" id="tab-wrong" class="filter-tab px-3 py-1.5 rounded-lg bg-slate-100 text-rose-600 hover:bg-rose-50 border border-transparent transition"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Xem câu sai</button>
+        </div>
+
+        <!-- Search & Reset -->
+        <div class="flex gap-2 items-center">
+          <div class="relative flex-1 md:w-64">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+            <input type="text" id="search-input" oninput="handleSearch()" placeholder="Tìm kiếm nội dung..." class="w-full pl-8 pr-3 py-1.5 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <button onclick="resetAll()" title="Làm lại từ đầu" class="px-3 py-1.5 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-300 transition">
+            <i class="fa-solid fa-rotate-right mr-1"></i>Reset
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Questions Container -->
+    <div id="quiz-list" class="space-y-5">
+      <!-- Question Cards injected by JS -->
+    </div>
+  </main>
+
+  <script>
+    // Toàn bộ dữ liệu câu hỏi tổng hợp từ QUIZ1.pdf, QUIZ2.pdf và GKVXL.pdf
+    const quizData = [
+      // ================= QUIZ 1 =================
+      {
+        id: "q1_1",
+        source: "quiz1",
+        sourceTitle: "Quiz 1",
+        question: "Chuyển đổi số thập phân 102 sang hệ nhị phân và hệ thập lục phân.",
+        isMulti: false,
+        options: [
+          { key: "A", text: "(01100110)₂, (66)₁₆", correct: true },
+          { key: "B", text: "(01100100)₂, (64)₁₆", correct: false },
+          { key: "C", text: "(01100110)₂, (64)₁₆", correct: false },
+          { key: "D", text: "(01100100)₂, (66)₁₆", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "102 = 64 + 32 + 4 + 2 = 01100110₂. Đổi sang Hex: 0110 = 6, 0110 = 6 => 66₁₆."
+      },
+      {
+        id: "q1_2",
+        source: "quiz1",
+        sourceTitle: "Quiz 1",
+        question: "Cho hai số nhị phân có dấu 8 bit (bù hai): A = 01001001₂ (73₁₀) và B = 11111100₂ (-4₁₀). Thực hiện phép cộng A + B và xác định xem có tràn số (overflow) không. (Chọn các đáp án đúng)",
+        isMulti: true,
+        options: [
+          { key: "A", text: "Kết quả nhị phân là 01000101₂.", correct: true },
+          { key: "B", text: "Giá trị thập phân của kết quả là 69₁₀.", correct: true },
+          { key: "C", text: "Có xảy ra tràn số vì bit dấu thay đổi không mong muốn.", correct: false },
+          { key: "D", text: "Không xảy ra tràn số.", correct: true },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "01001001₂ + 11111100₂ = (1)01000101₂ (bỏ bit nhớ tràn ngoài 8-bit). Kết quả nhị phân là 01000101₂ = 69₁₀. Hai số khác dấu cộng nhau không bao giờ bị tràn (OF = 0)."
+      },
+      {
+        id: "q1_3",
+        source: "quiz1",
+        sourceTitle: "Quiz 1",
+        question: "Điều gì sẽ xảy ra nếu Bus dữ liệu bị hỏng một đường truyền (dây) cụ thể?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Hệ thống sẽ không thể khởi động.", correct: false },
+          { key: "B", text: "Dữ liệu được truyền qua bus đó có thể bị sai lệch (bị lỗi).", correct: true },
+          { key: "C", text: "Chỉ các thiết bị I/O liên quan đến đường truyền đó bị ảnh hưởng.", correct: false },
+          { key: "D", text: "CPU sẽ tự động chuyển sang sử dụng một đường truyền dự phòng.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Khi một đường dữ liệu bị đứt hoặc kẹt mức 0/1, bit tương ứng trên từ dữ liệu truyền đi sẽ luôn sai, dẫn đến dữ liệu trao đổi bị sai lệch."
+      },
+      {
+        id: "q1_4",
+        source: "quiz1",
+        sourceTitle: "Quiz 1",
+        question: "Chọn các phát biểu đúng về Bit và Byte.",
+        isMulti: true,
+        options: [
+          { key: "A", text: "Một Bit là đơn vị thông tin nhỏ nhất trong máy tính, có giá trị 0 hoặc 1.", correct: true },
+          { key: "B", text: "Một Byte bằng 8 Bit.", correct: true },
+          { key: "C", text: "Dung lượng bộ nhớ thường được đo bằng Bit.", correct: false },
+          { key: "D", text: "Một Kilobyte (KB) luôn bằng 1000 Byte.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Trong kiến trúc máy tính, Bit là đơn vị nhỏ nhất, 1 Byte = 8 Bit. Dung lượng bộ nhớ thông dụng đo bằng Byte (hoặc KB, MB, GB; với 1 KB = 1024 Bytes)."
+      },
+      {
+        id: "q1_5",
+        source: "quiz1",
+        sourceTitle: "Quiz 1",
+        question: "Nếu một hệ thống sử dụng địa chỉ 24 bit, thì dung lượng bộ nhớ tối đa mà hệ thống đó có thể truy cập trực tiếp là bao nhiêu?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "16 GB", correct: false },
+          { key: "B", text: "4 GB", correct: false },
+          { key: "C", text: "16 MB", correct: true },
+          { key: "D", text: "64 MB", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Không gian định địa chỉ = 2²⁴ bytes = 2⁴ × 2²⁰ bytes = 16 MB."
+      },
+      {
+        id: "q1_6",
+        source: "quiz1",
+        sourceTitle: "Quiz 1",
+        question: "Chọn các phát biểu ĐÚNG về biểu diễn số nguyên có dấu bằng bù hai (Two's Complement) trên 8 bit.",
+        isMulti: true,
+        options: [
+          { key: "A", text: "Phạm vi biểu diễn từ -128 đến 127.", correct: true },
+          { key: "B", text: "Số -5 được biểu diễn là 11111011₂.", correct: true },
+          { key: "C", text: "Phép cộng hai số bù hai có thể gây tràn (overflow) nếu kết quả vượt quá phạm vi.", correct: true },
+          { key: "D", text: "Để tìm số bù hai của một số dương, ta chỉ cần đảo bit rồi cộng 1.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Dải 8 bit có dấu bù 2: [-2⁷, 2⁷-1] = [-128, 127]. +5 = 00000101₂ -> đảo bit + 1 ra -5: 11111011₂. Quy tắc đảo bit rồi cộng 1 dùng để đổi dấu (lấy số đối), còn biểu diễn số dương thì giữ nguyên mã nhị phân thường có bit dấu 0."
+      },
+      {
+        id: "q1_7",
+        source: "quiz1",
+        sourceTitle: "Quiz 1",
+        question: "Một thanh ghi 16 bit có thể biểu diễn bao nhiêu giá trị nguyên không dấu khác nhau?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "2¹⁵", correct: false },
+          { key: "B", text: "2¹⁶ - 1", correct: false },
+          { key: "C", text: "2¹⁶ (tương đương 65536 giá trị từ 0 đến 65535)", correct: true },
+          { key: "D", text: "65535", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Số lượng trạng thái/giá trị khác nhau mà n bit biểu diễn được luôn là 2ⁿ (với 16 bit là 2¹⁶ = 65536 giá trị)."
+      },
+      {
+        id: "q1_8",
+        source: "quiz1",
+        sourceTitle: "Quiz 1",
+        question: "Giả sử một CPU muốn ghi giá trị 0xFF vào ô nhớ tại địa chỉ 0x1234. Thứ tự các bước hợp lý trên các bus là gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Đặt 0xFF lên Bus dữ liệu -> Đặt 0x1234 lên Bus địa chỉ -> Phát tín hiệu WRITE trên Bus điều khiển.", correct: false },
+          { key: "B", text: "Đặt 0x1234 lên Bus địa chỉ -> Phát tín hiệu WRITE trên Bus điều khiển -> Đặt 0xFF lên Bus dữ liệu.", correct: false },
+          { key: "C", text: "Phát tín hiệu WRITE trên Bus điều khiển -> Đặt 0xFF lên Bus dữ liệu -> Đặt 0x1234 lên Bus địa chỉ.", correct: false },
+          { key: "D", text: "Đặt 0x1234 lên Bus địa chỉ -> Đặt 0xFF lên Bus dữ liệu -> Phát tín hiệu WRITE trên Bus điều khiển.", correct: true },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "CPU phải xác định địa chỉ trước, ổn định dữ liệu cần ghi trên Data bus, sau đó mới phát xung lệnh ghi WRITE (hoặc MEMW) trên Control bus."
+      },
+      {
+        id: "q1_9",
+        source: "quiz1",
+        sourceTitle: "Quiz 1",
+        question: "Cho số nhị phân có dấu 8 bit là 11111001₂ (dùng bù hai). Giá trị thập phân của nó là bao nhiêu?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "-7", correct: true },
+          { key: "B", text: "-9", correct: false },
+          { key: "C", text: "-15", correct: false },
+          { key: "D", text: "249", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Bit dấu là 1 (số âm). Tìm độ lớn bằng cách đảo bit rồi cộng 1: NOT(11111001) = 00000110; 00000110 + 1 = 00000111₂ = 7. Vậy giá trị là -7."
+      },
+      {
+        id: "q1_10",
+        source: "quiz1",
+        sourceTitle: "Quiz 1",
+        question: "Khi CPU thực hiện lệnh 'LOAD R1, [0xABCD]', hãy xác định các hành động CẦN THIẾT xảy ra trên các bus. (Chọn các đáp án đúng)",
+        isMulti: true,
+        options: [
+          { key: "A", text: "Địa chỉ 0xABCD được đặt lên Bus địa chỉ.", correct: true },
+          { key: "B", text: "Tín hiệu READ được phát ra trên Bus điều khiển.", correct: true },
+          { key: "C", text: "Dữ liệu từ địa chỉ 0xABCD được đọc từ bộ nhớ và đặt lên Bus dữ liệu.", correct: true },
+          { key: "D", text: "Dữ liệu từ Bus dữ liệu được lưu vào thanh ghi R1.", correct: true },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Đây là toàn bộ quy trình đọc (Memory Read Cycle) từ bộ nhớ vào thanh ghi R1 của CPU."
+      },
+      {
+        id: "q1_11",
+        source: "quiz1",
+        sourceTitle: "Quiz 1",
+        question: "Chuyển đổi số thập lục phân (A5)₁₆ sang hệ nhị phân.",
+        isMulti: false,
+        options: [
+          { key: "A", text: "10100101₂", correct: true },
+          { key: "B", text: "10100010₂", correct: false },
+          { key: "C", text: "10100111₂", correct: false },
+          { key: "D", text: "10010101₂", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "A = 1010₂, 5 = 0101₂ => (A5)₁₆ = 10100101₂."
+      },
+      {
+        id: "q1_12",
+        source: "quiz1",
+        sourceTitle: "Quiz 1",
+        question: "Thuật ngữ 'byte' đề cập đến một nhóm bao nhiêu bit?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "4 bit", correct: false },
+          { key: "B", text: "8 bit", correct: true },
+          { key: "C", text: "16 bit", correct: false },
+          { key: "D", text: "32 bit", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "1 Byte theo tiêu chuẩn kiến trúc máy tính luôn gồm 8 bit."
+      },
+      {
+        id: "q1_13",
+        source: "quiz1",
+        sourceTitle: "Quiz 1",
+        question: "Kết quả của phép toán logic (1011₂ AND 0110₂) là gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "0010₂", correct: true },
+          { key: "B", text: "1111₂", correct: false },
+          { key: "C", text: "0100₂", correct: false },
+          { key: "D", text: "1010₂", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Thực hiện AND từng bit: bit3: 1&0=0, bit2: 0&1=0, bit1: 1&1=1, bit0: 1&0=0 => 0010₂."
+      },
+      {
+        id: "q1_14",
+        source: "quiz1",
+        sourceTitle: "Quiz 1",
+        question: "Một hệ vi xử lý 32 bit thường ám chỉ điều gì về kiến trúc của nó? (Chọn các câu đúng)",
+        isMulti: true,
+        options: [
+          { key: "A", text: "CPU có thể xử lý các từ dữ liệu (data word) có độ dài 32 bit.", correct: true },
+          { key: "B", text: "Bus dữ liệu của hệ thống có độ rộng 32 bit.", correct: true },
+          { key: "C", text: "Bus địa chỉ của hệ thống bắt buộc có độ rộng 32 bit.", correct: false },
+          { key: "D", text: "Các thanh ghi đa năng (general-purpose registers) của CPU có độ dài 32 bit.", correct: true },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Độ rộng xử lý (word size) 32-bit quy định kích thước thanh ghi nội bộ và kích thước từ ALU xử lý, bus dữ liệu thường là 32-bit. Bus địa chỉ có thể khác 32-bit (ví dụ x86-32 có PAE hỗ trợ 36-bit bus địa chỉ)."
+      },
+      {
+        id: "q1_15",
+        source: "quiz1",
+        sourceTitle: "Quiz 1",
+        question: "Thanh ghi (Register) trong CPU có vai trò gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Lưu trữ vĩnh viễn dữ liệu và chương trình.", correct: false },
+          { key: "B", text: "Thực hiện các phép toán phức tạp.", correct: false },
+          { key: "C", text: "Lưu trữ tạm thời dữ liệu và địa chỉ đang được CPU xử lý.", correct: true },
+          { key: "D", text: "Điều khiển luồng dữ liệu giữa CPU và bộ nhớ chính.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Thanh ghi là bộ nhớ cực nhanh đặt ngay bên trong CPU dùng để giữ tạm toán hạng, kết quả trung gian và địa chỉ trong lúc tính toán."
+      },
+      {
+        id: "q1_16",
+        source: "quiz1",
+        sourceTitle: "Quiz 1",
+        question: "Số bù hai của 1010₂ (trên 4 bit) là gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "0101₂", correct: false },
+          { key: "B", text: "0110₂", correct: true },
+          { key: "C", text: "1011₂", correct: false },
+          { key: "D", text: "1101₂", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Số bù một: NOT(1010) = 0101. Số bù hai = 0101 + 1 = 0110₂."
+      },
+      {
+        id: "q1_17",
+        source: "quiz1",
+        sourceTitle: "Quiz 1",
+        question: "Thành phần nào KHÔNG thuộc Bộ xử lý trung tâm (CPU) cơ bản của một hệ vi xử lý điển hình?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Arithmetic Logic Unit (ALU)", correct: false },
+          { key: "B", text: "Control Unit (CU)", correct: false },
+          { key: "C", text: "Các thanh ghi (Registers)", correct: false },
+          { key: "D", text: "Bộ nhớ Cache (trong cấu trúc cơ bản tách biệt với nhân xử lý)", correct: true },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Ba khối cốt lõi không thể thiếu tạo nên CPU kinh điển là: ALU, CU và tập thanh ghi (Registers)."
+      },
+      {
+        id: "q1_18",
+        source: "quiz1",
+        sourceTitle: "Quiz 1",
+        question: "Vai trò chính của Khối Số học và Logic (ALU) trong CPU là gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Lưu trữ dữ liệu tạm thời trong quá trình xử lý.", correct: false },
+          { key: "B", text: "Giải mã các lệnh và điều khiển hoạt động của CPU.", correct: false },
+          { key: "C", text: "Thực hiện các phép toán số học và logic.", correct: true },
+          { key: "D", text: "Kết nối CPU với các thiết bị ngoại vi.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "ALU (Arithmetic Logic Unit) chuyên trách tính toán số học (+, -, *, /) và các phép toán logic (AND, OR, XOR, NOT, Shift)."
+      },
+      {
+        id: "q1_19",
+        source: "quiz1",
+        sourceTitle: "Quiz 1",
+        question: "Chọn các chức năng chính xác của các loại Bus trong một hệ vi xử lý.",
+        isMulti: true,
+        options: [
+          { key: "A", text: "Bus địa chỉ mang thông tin về vị trí ô nhớ hoặc thiết bị I/O mà CPU muốn truy cập.", correct: true },
+          { key: "B", text: "Bus dữ liệu truyền các tín hiệu điều khiển giữa CPU và các thiết bị ngoại vi.", correct: false },
+          { key: "C", text: "Bus điều khiển mang các lệnh (instructions) từ bộ nhớ đến CPU.", correct: false },
+          { key: "D", text: "Bus dữ liệu có thể truyền dữ liệu hai chiều (bidirectional).", correct: true },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Bus địa chỉ là một chiều (từ CPU ra). Bus dữ liệu là hai chiều (truyền cả đọc và ghi). Bus điều khiển mang các tín hiệu điều khiển và trạng thái."
+      },
+      {
+        id: "q1_20",
+        source: "quiz1",
+        sourceTitle: "Quiz 1",
+        question: "Sơ đồ khối cơ bản của một hệ vi xử lý bao gồm các thành phần nào?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "CPU, Bộ nhớ, Hệ thống Bus, Khối Vào/Ra (I/O).", correct: true },
+          { key: "B", text: "ALU, Bộ Điều Khiển, Thanh ghi, Bộ nhớ.", correct: false },
+          { key: "C", text: "Chipset, RAM, ROM, Card đồ họa.", correct: false },
+          { key: "D", text: "CPU, Đĩa cứng, Màn hình, Bàn phím.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Một hệ vi xử lý hoàn chỉnh gồm 4 thành phần nền tảng: CPU (vi xử lý), Bộ nhớ (RAM/ROM), Khối Vào/Ra (I/O) và Hệ thống Bus liên kết."
+      },
+
+      // ================= QUIZ 2 =================
+      {
+        id: "q2_1",
+        source: "quiz2",
+        sourceTitle: "Quiz 2",
+        question: "Thanh ghi cờ (FLAGS register) trong 8086 có tổng cộng bao nhiêu bit cờ được định nghĩa và sử dụng?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "9 bit cờ (6 cờ trạng thái + 3 cờ điều khiển)", correct: true },
+          { key: "B", text: "16 bit cờ", correct: false },
+          { key: "C", text: "6 bit cờ", correct: false },
+          { key: "D", text: "8 bit cờ", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Thanh ghi FLAGS của 8086 rộng 16 bit nhưng chỉ sử dụng 9 bit: 6 cờ trạng thái (CF, PF, AF, ZF, SF, OF) và 3 cờ điều khiển (TF, IF, DF)."
+      },
+      {
+        id: "q2_2",
+        source: "quiz2",
+        sourceTitle: "Quiz 2",
+        question: "Chọn các lệnh có thể thay đổi trực tiếp hoặc gián tiếp nội dung của thanh ghi IP (Instruction Pointer) trong 8086.",
+        isMulti: true,
+        options: [
+          { key: "A", text: "JMP", correct: true },
+          { key: "B", text: "CALL", correct: true },
+          { key: "C", text: "INT", correct: true },
+          { key: "D", text: "MOV IP, AX", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Thanh ghi IP không thể dùng làm đích trong lệnh MOV (không tồn tại lệnh MOV IP, AX). IP chỉ được nạp/thay đổi thông qua các lệnh rẽ nhánh: JMP, CALL, RET, INT, IRET."
+      },
+      {
+        id: "q2_3",
+        source: "quiz2",
+        sourceTitle: "Quiz 2",
+        question: "Điều nào sau đây là đúng khi sử dụng chế độ định địa chỉ gián tiếp thanh ghi (Register Indirect Addressing Mode) trong 8086? (Chọn các phương án đúng)",
+        isMulti: true,
+        options: [
+          { key: "A", text: "Thanh ghi BX có thể được dùng làm con trỏ địa chỉ hiệu dụng.", correct: true },
+          { key: "B", text: "Thanh ghi BP có thể được dùng làm con trỏ địa chỉ hiệu dụng.", correct: true },
+          { key: "C", text: "Thanh ghi SI có thể được dùng làm con trỏ địa chỉ hiệu dụng.", correct: true },
+          { key: "D", text: "Thanh ghi CX có thể được dùng làm con trỏ địa chỉ hiệu dụng.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Trong 8086, chỉ có 4 thanh ghi có thể đặt trong dấu ngoặc vuông [] để trỏ địa chỉ: BX, BP, SI, DI. CX và DX không dùng trực tiếp làm con trỏ bộ nhớ được."
+      },
+      {
+        id: "q2_4",
+        source: "quiz2",
+        sourceTitle: "Quiz 2",
+        question: "Lệnh 'LAHF' (Load AH from Flags) có tác động như thế nào đến thanh ghi cờ và thanh ghi AH?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Không thay đổi FLAGS; sao chép 5 cờ trạng thái (SF, ZF, AF, PF, CF) vào AH.", correct: true },
+          { key: "B", text: "Xóa toàn bộ các cờ trong FLAGS về 0.", correct: false },
+          { key: "C", text: "Đảo trạng thái các cờ trong FLAGS và lưu vào AH.", correct: false },
+          { key: "D", text: "Nạp giá trị từ AH vào FLAGS.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "LAHF sao chép byte thấp của thanh ghi FLAGS (chứa các cờ SF, ZF, AF, PF, CF) vào AH mà không hề làm thay đổi bất kỳ cờ nào trong FLAGS."
+      },
+      {
+        id: "q2_5",
+        source: "quiz2",
+        sourceTitle: "Quiz 2",
+        question: "Trong kiến trúc 8086, lệnh nào sau đây được sử dụng để vô hiệu hóa ngắt mặt nạ (disable maskable interrupts)?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "CLI (Clear Interrupt Flag, IF = 0)", correct: true },
+          { key: "B", text: "STI", correct: false },
+          { key: "C", text: "NOP", correct: false },
+          { key: "D", text: "HLT", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "CLI đặt cờ IF = 0, cấm các ngắt phần cứng che được (INTR). NMI là ngắt không che được nên CLI không cấm được NMI."
+      },
+      {
+        id: "q2_6",
+        source: "quiz2",
+        sourceTitle: "Quiz 2",
+        question: "Lệnh 'TEST AX, BX' có tác dụng gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Thực hiện phép toán AND logic giữa AX và BX, nhưng không lưu kết quả vào AX, chỉ cập nhật các cờ.", correct: true },
+          { key: "B", text: "So sánh AX và BX bằng phép trừ, sau đó thiết lập các cờ.", correct: false },
+          { key: "C", text: "Chuyển giá trị của BX vào AX nếu cả hai đều khác 0.", correct: false },
+          { key: "D", text: "Kiểm tra xem AX có bằng BX không bằng phép chia.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "TEST thực hiện toán tử AND giữa 2 toán hạng để cập nhật các cờ trạng thái (ZF, SF, PF, CF=0, OF=0), giá trị của 2 toán hạng được giữ nguyên."
+      },
+      {
+        id: "q2_7",
+        source: "quiz2",
+        sourceTitle: "Quiz 2",
+        question: "Trong 8086, lệnh 'LES DI, [BP]' thực hiện chức năng gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Load thanh ghi ES và DI từ một địa chỉ trong stack (sử dụng BP).", correct: false },
+          { key: "B", text: "Load thanh ghi DS và DI từ một địa chỉ trong stack.", correct: false },
+          { key: "C", text: "Gán giá trị của BP vào DI, sau đó gán giá trị từ bộ nhớ vào ES.", correct: false },
+          { key: "D", text: "Load DI với offset (2 byte thấp) và ES với segment (2 byte cao) từ vị trí bộ nhớ được chỉ định bởi BP.", correct: true },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Lệnh LES nạp con trỏ xa (far pointer 32-bit): word đầu tiên nạp vào thanh ghi tổng quát (DI), word kế tiếp nạp vào thanh ghi đoạn ES."
+      },
+      {
+        id: "q2_8",
+        source: "quiz2",
+        sourceTitle: "Quiz 2",
+        question: "Sau khi thực hiện lệnh DAS, thanh ghi AL sẽ chứa giá trị gì nếu trước đó AL = 30h, BL = 20h và lệnh SUB AL, BL đã được thực hiện? (Giả sử AF = 0, CF = 0)",
+        isMulti: false,
+        options: [
+          { key: "A", text: "10h", correct: true },
+          { key: "B", text: "00h", correct: false },
+          { key: "C", text: "50h", correct: false },
+          { key: "D", text: "0Ah", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "SUB AL, BL cho kết quả AL = 30h - 20h = 10h. Chữ số BCD hợp lệ và không có mượn cờ (AF=0, CF=0), nên DAS không cần hiệu chỉnh, AL vẫn là 10h."
+      },
+      {
+        id: "q2_9",
+        source: "quiz2",
+        sourceTitle: "Quiz 2",
+        question: "Lệnh nào trong 8086 được sử dụng để đọc một word từ cổng I/O có địa chỉ chứa trong DX?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "IN AX, DX", correct: true },
+          { key: "B", text: "IN AL, DX", correct: false },
+          { key: "C", text: "OUT DX, AX", correct: false },
+          { key: "D", text: "MOV AX, [DX]", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Đọc 1 byte dùng 'IN AL, DX', còn đọc 1 word (16-bit) từ cổng I/O biến trong DX bắt buộc dùng 'IN AX, DX'."
+      },
+      {
+        id: "q2_10",
+        source: "quiz2",
+        sourceTitle: "Quiz 2",
+        question: "Lệnh 'XLAT' (Translate) trong 8086 thường được sử dụng để thực hiện chức năng gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Chuyển đổi một byte từ bảng lookup (tra cứu mã).", correct: true },
+          { key: "B", text: "Hoán đổi nội dung của hai thanh ghi.", correct: false },
+          { key: "C", text: "Tính toán địa chỉ hiệu dụng.", correct: false },
+          { key: "D", text: "Thực hiện phép nhân số nguyên.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "XLAT (hoặc XLATB) thay thế byte trong AL bằng byte tại địa chỉ DS:[BX + AL], chuyên dùng để tra bảng mã (lookup table)."
+      },
+      {
+        id: "q2_11",
+        source: "quiz2",
+        sourceTitle: "Quiz 2",
+        question: "Giả sử DS = 1000h, BX = 0050h, DI = 0020h. Lệnh 'MOV AX, [BX+DI]' sẽ truy cập dữ liệu tại địa chỉ vật lý nào?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "10070h", correct: true },
+          { key: "B", text: "10050h", correct: false },
+          { key: "C", text: "10020h", correct: false },
+          { key: "D", text: "10700h", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Địa chỉ hiệu dụng EA = BX + DI = 0050h + 0020h = 0070h. Địa chỉ vật lý = DS × 16 + EA = 10000h + 0070h = 10070h."
+      },
+      {
+        id: "q2_12",
+        source: "quiz2",
+        sourceTitle: "Quiz 2",
+        question: "Lệnh DAA (Decimal Adjust for Addition) được sử dụng sau ADD. Khi nào cờ AF (Auxiliary Carry Flag) được kiểm tra bởi DAA?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Để điều chỉnh chữ số thấp (lower nibble, 4 bit thấp).", correct: true },
+          { key: "B", text: "Để điều chỉnh chữ số cao (upper nibble).", correct: false },
+          { key: "C", text: "Để xác định tràn số có dấu.", correct: false },
+          { key: "D", text: "Để xác định số âm.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Cờ AF phản ánh nhớ từ bit 3 sang bit 4 (giữa 2 nibble). Nếu AF = 1 hoặc 4 bit thấp > 9, DAA cộng 6 vào AL để hiệu chỉnh chữ số BCD thấp."
+      },
+      {
+        id: "q2_13",
+        source: "quiz2",
+        sourceTitle: "Quiz 2",
+        question: "Khi thực hiện lệnh 'ADC AX, BX', những cờ nào có thể bị ảnh hưởng bởi phép toán này? (Chọn các phương án đúng)",
+        isMulti: true,
+        options: [
+          { key: "A", text: "CF (Carry Flag)", correct: true },
+          { key: "B", text: "ZF (Zero Flag)", correct: true },
+          { key: "C", text: "PF (Parity Flag)", correct: true },
+          { key: "D", text: "DF (Direction Flag)", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Lệnh ADC là phép tính số học, cập nhật cả 6 cờ trạng thái (CF, ZF, PF, SF, OF, AF). Cờ điều khiển hướng chuỗi DF không bị ảnh hưởng."
+      },
+      {
+        id: "q2_14",
+        source: "quiz2",
+        sourceTitle: "Quiz 2",
+        question: "Cho đoạn mã: MOV AX, 0FFFFh; ADD AX, 1. Sau khi thực hiện, những nhận định nào sau đây là đúng về các cờ trong FLAGS? (Chọn các câu đúng)",
+        isMulti: true,
+        options: [
+          { key: "A", text: "CF = 1 (Carry Flag)", correct: true },
+          { key: "B", text: "ZF = 1 (Zero Flag)", correct: true },
+          { key: "C", text: "OF = 0 (Overflow Flag)", correct: true },
+          { key: "D", text: "SF = 0 (Sign Flag)", correct: true },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "0FFFFh + 1 = 10000h -> AX = 0000h và mượn/nhớ ra ngoài 16 bit: CF = 1; Kết quả bằng 0 nên ZF = 1; Bit dấu MSB là 0 nên SF = 0; Với số có dấu (-1) + (+1) = 0 hoàn toàn đúng quy tắc nên không tràn số có dấu (OF = 0)."
+      },
+      {
+        id: "q2_15",
+        source: "quiz2",
+        sourceTitle: "Quiz 2",
+        question: "Cho đoạn mã: MOV AX, 0A000h; MOV ES, AX; MOV DI, 0010h; MOV CX, 5; XOR AL, AL; REP STOSB. Mục đích chính của đoạn mã trên là gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Xóa 5 byte đầu tiên của đoạn bộ nhớ tại địa chỉ A000:0010h về giá trị 0.", correct: true },
+          { key: "B", text: "Sao chép 5 byte từ ES:DI sang AL.", correct: false },
+          { key: "C", text: "Đặt giá trị 0A000h vào thanh ghi ES.", correct: false },
+          { key: "D", text: "Thêm 5 vào thanh ghi CX.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "XOR AL, AL làm AL = 0; CX = 5; REP STOSB ghi liên tiếp giá trị AL (0) vào vùng nhớ ES:DI trong 5 lần lặp."
+      },
+      {
+        id: "q2_16",
+        source: "quiz2",
+        sourceTitle: "Quiz 2",
+        question: "Sau khi thực hiện lệnh 'PUSH AX', thanh ghi SP (Stack Pointer) sẽ thay đổi như thế nào trong 8086?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "SP giảm đi 2 (SP = SP - 2)", correct: true },
+          { key: "B", text: "SP tăng lên 2 (SP = SP + 2)", correct: false },
+          { key: "C", text: "SP giảm đi 1", correct: false },
+          { key: "D", text: "SP tăng lên 1", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Trong 8086 ngăn xếp phát triển từ địa chỉ cao xuống địa chỉ thấp. Mỗi thao tác PUSH một từ 16-bit làm giảm con trỏ ngăn xếp SP đi 2."
+      },
+      {
+        id: "q2_17",
+        source: "quiz2",
+        sourceTitle: "Quiz 2",
+        question: "Lệnh 'SAL AX, 1' (Shift Arithmetic Left AX by 1 bit) có tác dụng tương đương với phép toán nào?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Nhân AX với 2.", correct: true },
+          { key: "B", text: "Chia AX cho 2.", correct: false },
+          { key: "C", text: "Cộng AX với 1.", correct: false },
+          { key: "D", text: "Trừ AX cho 1.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Dịch trái số học hay logic đi 1 bit tương đương với phép nhân giá trị đó với 2¹ = 2 (nếu không xảy ra tràn số)."
+      },
+      {
+        id: "q2_18",
+        source: "quiz2",
+        sourceTitle: "Quiz 2",
+        question: "Nêu tên một thanh ghi đoạn (segment register) không thể là toán hạng đích (destination) của lệnh MOV trong 8086.",
+        isMulti: false,
+        options: [
+          { key: "A", text: "CS (Code Segment)", correct: true },
+          { key: "B", text: "DS (Data Segment)", correct: false },
+          { key: "C", text: "ES (Extra Segment)", correct: false },
+          { key: "D", text: "SS (Stack Segment)", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Không cho phép 'MOV CS, reg/mem' vì việc thay đổi CS độc lập mà không thay đổi IP sẽ phá vỡ luồng nạp lệnh an toàn của vi xử lý."
+      },
+      {
+        id: "q2_19",
+        source: "quiz2",
+        sourceTitle: "Quiz 2",
+        question: "Cho đoạn mã: MOV AX, 1234h; MOV CX, 5678h; PUSH AX; PUSH CX; POP BX; POP DX. Sau khi thực hiện, giá trị của DX và BX là bao nhiêu?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "DX = 1234h, BX = 5678h", correct: true },
+          { key: "B", text: "DX = 5678h, BX = 1234h", correct: false },
+          { key: "C", text: "DX = 1234h, BX = 1234h", correct: false },
+          { key: "D", text: "DX = 5678h, BX = 5678h", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Ngăn xếp tuân theo cơ chế LIFO (vào sau ra trước). PUSH AX (1234h) trước, PUSH CX (5678h) sau. Khi POP BX sẽ lấy 5678h từ đỉnh stack. POP DX kế tiếp sẽ lấy 1234h."
+      },
+      {
+        id: "q2_20",
+        source: "quiz2",
+        sourceTitle: "Quiz 2",
+        question: "Khi sử dụng lệnh LOOP trong 8086, thanh ghi nào được tự động giảm và kiểm tra để điều khiển vòng lặp?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "CX (Count register)", correct: true },
+          { key: "B", text: "DX", correct: false },
+          { key: "C", text: "BX", correct: false },
+          { key: "D", text: "AX", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Lệnh LOOP tự động thực hiện: CX = CX - 1; Nếu CX != 0 thì nhảy về nhãn đích, không thay đổi cờ trạng thái."
+      },
+
+      // ================= GKVXL =================
+      {
+        id: "gk_1",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Lệnh RET trong thủ tục 8086 có tác dụng nào?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Lấy địa chỉ trở về từ stack và quay lại chương trình gọi.", correct: true },
+          { key: "B", text: "Tăng AX lên 1.", correct: false },
+          { key: "C", text: "Đọc một ký tự từ bàn phím.", correct: false },
+          { key: "D", text: "Thi hành hai thanh ghi.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Lệnh RET (Return) lấy (POP) địa chỉ trở về (IP hoặc cả CS:IP) đã được lưu trên ngăn xếp bởi lệnh CALL trước đó."
+      },
+      {
+        id: "gk_2",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Lệnh 8086 nào sau đây đọc 1 ký tự từ bàn phím có echo (hiển thị ký tự) qua ngắt DOS?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "INT 21h, AH=02h", correct: false },
+          { key: "B", text: "INT 21h, AH=01h", correct: true },
+          { key: "C", text: "INT 21h, AH=09h", correct: false },
+          { key: "D", text: "INT 21h, AH=4Ch", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Hàm 01h của ngắt INT 21h là đọc một ký tự từ bàn phím và có hiển thị (echo) ra màn hình, ký tự trả về trong AL."
+      },
+      {
+        id: "gk_3",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Bus địa chỉ có độ rộng 20 bit cho phép truy cập tối đa bao nhiêu byte bộ nhớ?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "1 MB", correct: true },
+          { key: "B", text: "640 KB", correct: false },
+          { key: "C", text: "4 GB", correct: false },
+          { key: "D", text: "16 MB", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "2²⁰ byte = 1,048,576 byte = 1 MB (đây chính là giới hạn bộ nhớ vật lý của 8086)."
+      },
+      {
+        id: "gk_4",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Trong quá trình thực thi lệnh, việc cập nhật các cờ trạng thái (status flags) thường xảy ra ở giai đoạn nào?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Fetch (Nạp lệnh)", correct: false },
+          { key: "B", text: "Decode (Giải mã lệnh)", correct: false },
+          { key: "C", text: "Execute (Thực thi lệnh)", correct: true },
+          { key: "D", text: "Write-back (Ghi kết quả)", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Các cờ trạng thái phản ánh kết quả tính toán do ALU sinh ra trong pha thực thi (Execute)."
+      },
+      {
+        id: "gk_5",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Bus nào chịu trách nhiệm truyền dữ liệu giữa CPU và các thiết bị ngoại vi / bộ nhớ?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Address Bus", correct: false },
+          { key: "B", text: "Data Bus", correct: true },
+          { key: "C", text: "Control Bus", correct: false },
+          { key: "D", text: "Power Bus", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Data Bus (Bus dữ liệu) là tuyến truyền tải nội dung dữ liệu thực tế giữa CPU với bộ nhớ và I/O."
+      },
+      {
+        id: "gk_6",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Đâu là vùng nhớ có thể được sử dụng để cấp phát động trong C bằng malloc hoặc calloc?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Stack", correct: false },
+          { key: "B", text: "Heap", correct: true },
+          { key: "C", text: "Data Segment", correct: false },
+          { key: "D", text: "Code Segment", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Bộ nhớ cấp phát động thông qua malloc(), calloc(), realloc() trong C luôn được cấp trên vùng nhớ Heap."
+      },
+      {
+        id: "gk_7",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Những loại bộ nhớ nào thường được dùng để lưu firmware trong vi điều khiển?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Flash", correct: true },
+          { key: "B", text: "RAM", correct: false },
+          { key: "C", text: "DRAM", correct: false },
+          { key: "D", text: "SRAM", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Bộ nhớ Flash là bộ nhớ bán dẫn bất biến (non-volatile), có thể ghi xóa bằng điện tử, tiêu chuẩn để lưu firmware trong MCU hiện đại."
+      },
+      {
+        id: "gk_8",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Sự khác biệt giữa lệnh JMP NEAR và JMP FAR trong 8086 là gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "JMP NEAR nhảy không điều kiện, JMP FAR nhảy có điều kiện.", correct: false },
+          { key: "B", text: "JMP NEAR nhảy đến địa chỉ tuyệt đối, JMP FAR nhảy tương đối.", correct: false },
+          { key: "C", text: "JMP NEAR chỉ thay đổi thanh ghi IP, JMP FAR thay đổi cả CS và IP.", correct: true },
+          { key: "D", text: "Không có sự khác biệt đáng kể về chức năng.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "JMP NEAR nhảy trong cùng phân đoạn mã (intra-segment, chỉ đổi IP). JMP FAR nhảy sang phân đoạn mã khác (inter-segment, đổi cả CS và IP)."
+      },
+      {
+        id: "gk_9",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Đâu là các đơn vị chức năng cơ bản bên trong của một CPU? (Chọn các phương án đúng)",
+        isMulti: true,
+        options: [
+          { key: "A", text: "ALU (Arithmetic Logic Unit)", correct: true },
+          { key: "B", text: "Memory (Bộ nhớ chính)", correct: false },
+          { key: "C", text: "Control Unit (Khối điều khiển)", correct: true },
+          { key: "D", text: "Input/Output Ports (Cổng ngoại vi)", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Bên trong cấu trúc nội vi CPU, 2 khối chức năng xử lý chính là ALU (tính toán) và Control Unit (điều khiển, giải mã lệnh)."
+      },
+      {
+        id: "gk_10",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Trong 8086, thanh ghi DS thường dùng cho mục đích nào?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Chứa đoạn mã lệnh mặc định duy nhất.", correct: false },
+          { key: "B", text: "Chỉ chứa cờ trạng thái.", correct: false },
+          { key: "C", text: "Chỉ chứa địa chỉ stack.", correct: false },
+          { key: "D", text: "Chứa đoạn dữ liệu mặc định (Data Segment).", correct: true },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "DS (Data Segment) là thanh ghi đoạn giữ địa chỉ cơ sở của vùng nhớ dữ liệu tĩnh và biến toàn cục của chương trình."
+      },
+      {
+        id: "gk_11",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Lệnh 'CMP AX, BX' trong 8086 thực chất làm gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Gán BX = AX.", correct: false },
+          { key: "B", text: "Tính AX - BX, cập nhật các cờ trạng thái và lưu kết quả vào AX.", correct: false },
+          { key: "C", text: "Tính AX - BX, cập nhật các cờ trạng thái nhưng không lưu kết quả.", correct: true },
+          { key: "D", text: "So sánh AX và BX và lưu giá trị lớn hơn vào AX.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "CMP thực hiện phép trừ tạm thời (AX - BX) để đặt các cờ trạng thái (ZF, SF, CF, OF, PF, AF) mà không làm thay đổi giá trị của AX lẫn BX."
+      },
+      {
+        id: "gk_12",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Mục đích của device driver trong hệ máy tính là gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Cung cấp lớp phần mềm trung gian điều khiển thiết bị phần cứng cụ thể.", correct: true },
+          { key: "B", text: "Thay thế RAM vật lý.", correct: false },
+          { key: "C", text: "Biến lệnh C thành lệnh BIOS.", correct: false },
+          { key: "D", text: "Chỉ đo nhiệt độ phòng.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Trình điều khiển thiết bị (Device Driver) là phần mềm cho phép hệ điều hành giao tiếp chuẩn hóa với phần cứng cụ thể."
+      },
+      {
+        id: "gk_13",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Tệp .com trong môi trường DOS 8086 khác với tệp .exe ở điểm nào?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Tệp .com phức tạp hơn và có thể chứa nhiều segment.", correct: false },
+          { key: "B", text: "Tệp .com đơn giản hơn, thực thi trong một segment duy nhất (tối đa 64KB).", correct: true },
+          { key: "C", text: "Tệp .com yêu cầu linker xử lý nhiều bước hơn.", correct: false },
+          { key: "D", text: "Tệp .com không thể truy cập các thiết bị ngoại vi.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "File .COM không có relocation header, toàn bộ code, data và stack nằm chung trong 1 segment duy nhất tối đa 64KB (CS=DS=SS=ES, bắt đầu từ offset 100h)."
+      },
+      {
+        id: "gk_14",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Trong kiến trúc 8086, thanh ghi ES thường được sử dụng để làm gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Lưu trữ địa chỉ trả về của chương trình con.", correct: false },
+          { key: "B", text: "Lưu trữ địa chỉ của dữ liệu trong đoạn bổ sung (Extra Segment).", correct: true },
+          { key: "C", text: "Lưu trữ địa chỉ của ngăn xếp (stack).", correct: false },
+          { key: "D", text: "Lưu trữ địa chỉ của mã lệnh hiện tại.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "ES là Extra Segment, thường dùng làm phân đoạn đích chứa chuỗi đích trong các lệnh xử lý chuỗi (MOVS, STOS)."
+      },
+      {
+        id: "gk_15",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Lệnh INT 21h trong 8086 được sử dụng để làm gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Thực hiện một phép nhảy không điều kiện.", correct: false },
+          { key: "B", text: "Gọi một ngắt phần mềm để yêu cầu dịch vụ của hệ điều hành DOS.", correct: true },
+          { key: "C", text: "Nạp một giá trị vào thanh ghi AX.", correct: false },
+          { key: "D", text: "So sánh hai giá trị.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "INT 21h là ngắt phần mềm tiêu chuẩn trong MS-DOS dùng để gọi các dịch vụ API của hệ điều hành (nhập xuất, quản lý tệp, cấp phát bộ nhớ)."
+      },
+      {
+        id: "gk_16",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Nếu thiết kế I/O isolated (cổng độc lập) trên 8086, cặp lệnh nào thường dùng?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "IN và OUT", correct: true },
+          { key: "B", text: "PUSH và POP", correct: false },
+          { key: "C", text: "CALL và RET", correct: false },
+          { key: "D", text: "MUL và DIV", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Kiến trúc Isolated I/O (không gian cổng biệt lập với bộ nhớ) dùng các lệnh chuyên dụng IN để đọc từ cổng và OUT để ghi ra cổng."
+      },
+      {
+        id: "gk_17",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Thanh ghi nào trong 8086 có thể được chia thành hai thanh ghi 8-bit riêng biệt (cao và thấp)? (Chọn các đáp án đúng)",
+        isMulti: true,
+        options: [
+          { key: "A", text: "AX (AH và AL)", correct: true },
+          { key: "B", text: "BX (BH và BL)", correct: true },
+          { key: "C", text: "SP", correct: false },
+          { key: "D", text: "SI", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Chỉ có 4 thanh ghi đa năng 16-bit AX, BX, CX, DX là có thể chia thành 2 nửa 8-bit độc lập (H: High, L: Low). Các con trỏ/chỉ số SP, BP, SI, DI thì không chia được."
+      },
+      {
+        id: "gk_18",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Lệnh JMP LABEL là loại lệnh nào?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Nhảy nếu bằng (JE).", correct: false },
+          { key: "B", text: "Nhảy vô điều kiện (Unconditional jump).", correct: true },
+          { key: "C", text: "Nhảy nếu có nhớ (JC).", correct: false },
+          { key: "D", text: "Gọi thủ tục có lưu địa chỉ trả về.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "JMP (Jump) là lệnh rẽ nhánh vô điều kiện, luôn nhảy đến nhãn đích mà không cần kiểm tra bất kỳ cờ nào."
+      },
+      {
+        id: "gk_19",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Nếu bộ nhớ có thời gian truy cập chậm hơn chu kỳ bus của CPU, giải pháp thường dùng là gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Chèn Wait State (chu kỳ chờ).", correct: true },
+          { key: "B", text: "Xóa bus địa chỉ.", correct: false },
+          { key: "C", text: "Tắt thanh ghi cờ.", correct: false },
+          { key: "D", text: "Dùng mã ASCII.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "CPU kéo dài chu kỳ bus bằng cách đưa chân READY về mức thấp, làm phát sinh các chu kỳ chờ (Wait State) để đồng bộ với bộ nhớ chậm."
+      },
+      {
+        id: "gk_20",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Trong biểu diễn số có dấu, phương pháp bù hai có ưu điểm gì nổi bật so với biểu diễn bù một?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Đơn giản hóa mạch cộng trừ và chỉ có một biểu diễn duy nhất cho số 0.", correct: true },
+          { key: "B", text: "Có hai biểu diễn cho số 0 (+0 và -0).", correct: false },
+          { key: "C", text: "Phạm vi biểu diễn số âm hẹp hơn.", correct: false },
+          { key: "D", text: "Làm tăng độ chính xác số thực.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Mã bù hai khắc phục nhược điểm của bù một là loại bỏ tình trạng có 2 số 0 (+0 và -0), đồng thời phép trừ có thể thực hiện trực tiếp bằng bộ cộng."
+      },
+      {
+        id: "gk_21",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Trong kiến trúc vi xử lý 8086, vai trò chính của bộ đệm hàng đợi lệnh (Instruction Queue) là gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Lưu trữ tạm thời dữ liệu đang được xử lý bởi ALU.", correct: false },
+          { key: "B", text: "Tăng tốc độ bằng cách nạp trước vài byte lệnh tiếp theo từ bộ nhớ trong lúc Execution Unit đang bận.", correct: true },
+          { key: "C", text: "Chứa địa chỉ của lệnh kế tiếp sẽ được thực thi.", correct: false },
+          { key: "D", text: "Lưu kết quả của phép tính số học hoặc logic.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Khối BIU trong 8086 nạp trước 6 byte lệnh vào hàng đợi lệnh (prefetch queue) giúp thực thi lệnh liên tục không phải chờ nạp lệnh (dạng tiền thân của pipelining)."
+      },
+      {
+        id: "gk_22",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Khi sử dụng malloc để cấp phát bộ nhớ, nếu yêu cầu một lượng bộ nhớ quá lớn vượt quá dung lượng khả dụng, hàm malloc sẽ trả về giá trị nào?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Một con trỏ tới địa chỉ 0x0001.", correct: false },
+          { key: "B", text: "Một con trỏ tới một vùng nhớ ngẫu nhiên.", correct: false },
+          { key: "C", text: "NULL", correct: true },
+          { key: "D", text: "Chương trình sẽ bị crash ngay lập tức.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Khi cấp phát bộ nhớ heap thất bại, hàm malloc() trả về con trỏ NULL để báo cho chương trình xử lý ngoại lệ."
+      },
+      {
+        id: "gk_23",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Với đoạn mã C: `volatile int flag; while (flag == 0) {}`, phát biểu nào sau đây là KHÔNG ĐÚNG về quá trình biên dịch? (Chọn các câu không đúng)",
+        isMulti: true,
+        options: [
+          { key: "A", text: "Giá trị flag được kiểm tra lại từ bộ nhớ ở mỗi vòng lặp.", correct: false },
+          { key: "B", text: "Biến flag luôn giữ nguyên một giá trị cố định không đổi.", correct: true },
+          { key: "C", text: "Vòng lặp được trình biên dịch tối ưu hóa thành while(1).", correct: true },
+          { key: "D", text: "Các truy cập bộ nhớ tới flag bị trình biên dịch loại bỏ.", correct: true },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Từ khóa `volatile` báo cho trình biên dịch biết biến có thể bị thay đổi bởi luồng khác hoặc ngắt phần cứng, do đó CẤM tối ưu bỏ đọc bộ nhớ và CẤM biến thành while(1). Các phát biểu B, C, D đều sai về volatile."
+      },
+      {
+        id: "gk_24",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Biểu diễn số thập phân -25 dưới dạng bù hai với 16 bit là bao nhiêu?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "FFE7h (1111 1111 1110 0111₂)", correct: true },
+          { key: "B", text: "FF19h", correct: false },
+          { key: "C", text: "0019h", correct: false },
+          { key: "D", text: "FFE9h", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "+25 = 0019h = 0000 0000 0001 1001₂. Đảo bit: 1111 1111 1110 0110₂. Cộng 1: 1111 1111 1110 0111₂ = FFE7h."
+      },
+      {
+        id: "gk_25",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Khi CPU ghi dữ liệu ra thiết bị I/O, tín hiệu điều khiển nào thường được kích hoạt?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "READ hoặc IOR", correct: false },
+          { key: "B", text: "RESET duy nhất", correct: false },
+          { key: "C", text: "INTA duy nhất", correct: false },
+          { key: "D", text: "WRITE hoặc IOW (I/O Write)", correct: true },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Khi CPU thực hiện lệnh OUT ghi ra cổng I/O, tín hiệu IOW (I/O Write) sẽ được kéo xuống mức tích cực."
+      },
+      {
+        id: "gk_26",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Giải mã mã máy lệnh 8086 sau: 89 C3. Lệnh này thực hiện thao tác gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "MOV AX, BX", correct: false },
+          { key: "B", text: "MOV BX, AX", correct: true },
+          { key: "C", text: "MOV CX, BX", correct: false },
+          { key: "D", text: "MOV AX, CX", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Opcode 89h là MOV r/m16, r16. Byte ModR/M = C3h = 11 000 011b (mod 11: chế độ thanh ghi, reg = 000 tương ứng AX, r/m = 011 tương ứng BX). Lệnh là: MOV BX, AX."
+      },
+      {
+        id: "gk_27",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Trong kiến trúc 8086, thanh ghi nào thường được ngầm định sử dụng để đếm số lần lặp trong các lệnh LOOP?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "CX", correct: true },
+          { key: "B", text: "AX", correct: false },
+          { key: "C", text: "BX", correct: false },
+          { key: "D", text: "DX", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "CX (Count register) là thanh ghi bộ đếm vòng lặp mặc định của các lệnh LOOP, LOOPZ, LOOPNZ."
+      },
+      {
+        id: "gk_28",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Xét đoạn mã 8086: MOV AX, 10; MOV BX, 0; CMP AX, BX; JNE target. Lệnh nào sẽ được thực thi tiếp theo?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Lệnh ngay sau JNE.", correct: false },
+          { key: "B", text: "Lệnh tại nhãn target.", correct: true },
+          { key: "C", text: "Lệnh MOV BX, 0.", correct: false },
+          { key: "D", text: "Lệnh CMP AX, BX.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "AX = 10 khác BX = 0, nên CMP làm cờ Zero Flag ZF = 0. Lệnh JNE (Jump if Not Equal, nhảy khi ZF=0) thỏa mãn điều kiện nên nhảy đến 'target'."
+      },
+      {
+        id: "gk_29",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Lệnh 'MOV AX, [BX+SI]' trong 8086 sử dụng chế độ định địa chỉ nào?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Direct Addressing", correct: false },
+          { key: "B", text: "Register Indirect Addressing", correct: false },
+          { key: "C", text: "Based Indexed Addressing (Định địa chỉ chỉ số cơ sở)", correct: true },
+          { key: "D", text: "Indexed Addressing", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Chế độ sử dụng kết hợp một thanh ghi cơ sở (BX hoặc BP) và một thanh ghi chỉ số (SI hoặc DI) gọi là Based Indexed Addressing."
+      },
+      {
+        id: "gk_30",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Vì sao nhiều CPU hiện đại được thiết kế có nhiều mức bộ nhớ cache L1, L2, L3?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Để thay thế nguồn điện.", correct: false },
+          { key: "B", text: "Để loại bỏ hoàn toàn RAM.", correct: false },
+          { key: "C", text: "Để tăng số phím bàn phím.", correct: false },
+          { key: "D", text: "Cân bằng giữa tốc độ truy cập, dung lượng và chi phí sản xuất.", correct: true },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "L1 nhỏ nhất, siêu nhanh nhưng đắt; L2/L3 lớn hơn, chậm hơn chút nhưng rẻ hơn; phân cấp giúp tối ưu hiệu năng tổng thể với chi phí hợp lý."
+      },
+      {
+        id: "gk_31",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Giai đoạn giải mã lệnh (Instruction Decode) trong CPU nhằm mục đích gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Xác định thao tác cần thực hiện và các toán hạng cần dùng.", correct: true },
+          { key: "B", text: "Xóa toàn bộ bộ nhớ.", correct: false },
+          { key: "C", text: "Tắt mọi ngắt phần cứng.", correct: false },
+          { key: "D", text: "Sắp xếp tập tin trên ổ đĩa.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Giải mã lệnh phân tích mã nhị phân của lệnh (Opcode, ModR/M, hằng số) để tạo các tín hiệu điều khiển vi lệnh cho ALU và thanh ghi."
+      },
+      {
+        id: "gk_32",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Trong 8086, lệnh 'TEST AX, BX' thực hiện phép toán logic nào?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "AND giữa AX và BX", correct: true },
+          { key: "B", text: "OR giữa AX và BX", correct: false },
+          { key: "C", text: "XOR giữa AX và BX", correct: false },
+          { key: "D", text: "ADD giữa AX và BX", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "TEST bản chất là phép AND theo từng bit nhưng không lưu kết quả vào thanh ghi đích, chỉ cập nhật cờ."
+      },
+      {
+        id: "gk_33",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Lệnh 'SUB CX, DX' thực hiện thao tác gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "DX = CX - DX", correct: false },
+          { key: "B", text: "CX = CX + DX", correct: false },
+          { key: "C", text: "DX = DX + CX", correct: false },
+          { key: "D", text: "CX = CX - DX", correct: true },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Cú pháp SUB đích, nguồn: đích = đích - nguồn => CX = CX - DX."
+      },
+      {
+        id: "gk_34",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Trong chu trình thực hiện lệnh của CPU, giai đoạn nào sẽ trực tiếp thực hiện các phép toán số học hoặc logic?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Fetch (Nạp lệnh)", correct: false },
+          { key: "B", text: "Decode (Giải mã)", correct: false },
+          { key: "C", text: "Execute (Thực thi)", correct: true },
+          { key: "D", text: "Memory Access (Truy cập nhớ)", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Giai đoạn Execute điều khiển ALU tính toán số học hoặc logic theo tín hiệu giải mã."
+      },
+      {
+        id: "gk_35",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Thanh ghi nào trong CPU 8086 được sử dụng để lưu trữ offset của lệnh tiếp theo sẽ được thực thi?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "SP (Stack Pointer)", correct: false },
+          { key: "B", text: "BP (Base Pointer)", correct: false },
+          { key: "C", text: "IP (Instruction Pointer)", correct: true },
+          { key: "D", text: "CS (Code Segment)", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "IP luôn trỏ đến địa chỉ offset của byte lệnh kế tiếp cần nạp trong đoạn mã CS."
+      },
+      {
+        id: "gk_36",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Cơ chế ưu tiên ngắt (Interrupt Priority) dùng để giải quyết vấn đề nào?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Không đủ dung lượng ổ cứng.", correct: false },
+          { key: "B", text: "Màn hình quá sáng.", correct: false },
+          { key: "C", text: "Nhiều yêu cầu ngắt xuất hiện đồng thời cùng lúc.", correct: true },
+          { key: "D", text: "Chuột không dây hết pin.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Khi có nhiều thiết bị yêu cầu ngắt cùng lúc, mức ưu tiên ngắt quyết định ngắt nào khẩn cấp hơn để CPU phục vụ trước."
+      },
+      {
+        id: "gk_37",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Lệnh 'DIV BL' (với AX chứa số bị chia 16 bit và BL chứa số chia 8 bit) trong 8086 sẽ lưu kết quả như thế nào?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Thương lưu vào AX, số dư vào DX.", correct: false },
+          { key: "B", text: "Thương lưu vào AL, số dư lưu vào AH.", correct: true },
+          { key: "C", text: "Thương lưu vào AX, số dư vào BX.", correct: false },
+          { key: "D", text: "Thương lưu vào AH, số dư vào AL.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Chia 16 bit (AX) cho 8 bit: kết quả thương số lưu vào AL, phần dư lưu vào AH."
+      },
+      {
+        id: "gk_38",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Thanh ghi MDR (Memory Data Register) hoặc MBR thường dùng để chứa gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Địa chỉ MAC của card mạng.", correct: false },
+          { key: "B", text: "Dữ liệu trao đổi trực tiếp với bộ nhớ.", correct: true },
+          { key: "C", text: "Lệnh reset BIOS.", correct: false },
+          { key: "D", text: "Xung nhịp hệ thống.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "MDR/MBR là thanh ghi đệm dữ liệu kết nối trực tiếp với Bus dữ liệu của bộ nhớ chính."
+      },
+      {
+        id: "gk_39",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Cho đoạn mã 8086: MOV AX, F234h; MOV BL, 56h; ADD AH, BL. Sau lệnh ADD, giá trị của thanh ghi AX là bao nhiêu?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "F234h", correct: false },
+          { key: "B", text: "F28Ah", correct: false },
+          { key: "C", text: "4834h", correct: true },
+          { key: "D", text: "14834h", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "AH = F2h, AL = 34h, BL = 56h. ADD AH, BL: F2h + 56h = 148h -> cắt lưu 8 bit vào AH = 48h. Thanh ghi AL giữ nguyên 34h => Toàn bộ AX = 4834h."
+      },
+      {
+        id: "gk_40",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Đoạn mã hợp ngữ 'CMP AX, BX; JNE L1' tương đương với cấu trúc điều kiện C nào? (Giả sử AX chứa x, BX chứa y)",
+        isMulti: false,
+        options: [
+          { key: "A", text: "if (x == y) goto L1;", correct: false },
+          { key: "B", text: "if (x > y) goto L1;", correct: false },
+          { key: "C", text: "if (x != y) goto L1;", correct: true },
+          { key: "D", text: "if (x < y) goto L1;", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "JNE (Jump if Not Equal) thực hiện nhảy khi hai giá trị so sánh không bằng nhau (x != y)."
+      },
+      {
+        id: "gk_41",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Khi sử dụng các lệnh truy cập I/O như 'IN AL, DX', thanh ghi DX chứa thông tin gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Dữ liệu cần ghi ra cổng I/O.", correct: false },
+          { key: "B", text: "Địa chỉ của cổng I/O.", correct: true },
+          { key: "C", text: "Số lượng byte cần đọc.", correct: false },
+          { key: "D", text: "Mã chức năng của thiết bị I/O.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Trong lệnh IN/OUT với địa chỉ cổng 16-bit, thanh ghi DX bắt buộc phải chứa địa chỉ cổng I/O cần giao tiếp."
+      },
+      {
+        id: "gk_42",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Một CPU superscalar khác pipeline thường ở điểm nào?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Không cần mã máy.", correct: false },
+          { key: "B", text: "Không có thanh ghi.", correct: false },
+          { key: "C", text: "Chỉ chạy một chương trình duy nhất trong ROM.", correct: false },
+          { key: "D", text: "Có thể phát hành và thực thi nhiều lệnh trong cùng một chu kỳ xung nhịp.", correct: true },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Pipeline thông thường chỉ phát 1 lệnh/chu kỳ; Superscalar có nhiều pipeline song song cho phép thực thi đa lệnh trong một chu kỳ (IPC > 1)."
+      },
+      {
+        id: "gk_43",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Để biểu diễn cấu trúc 'if (x != 0) x--;' với biến x lưu ở thanh ghi AX, đoạn hợp ngữ nào sau đây đúng?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "CMP AX, 0; JNE END; DEC AX; END:", correct: false },
+          { key: "B", text: "CMP AX, 0; JE END; DEC AX; END:", correct: true },
+          { key: "C", text: "DEC AX; JE END", correct: false },
+          { key: "D", text: "MOV AX, 0; DEC AX", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Nếu x == 0 thì bỏ qua không trừ (JE END), ngược lại (x != 0) thì thực hiện DEC AX."
+      },
+      {
+        id: "gk_44",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Vì sao thường phải khởi tạo thanh ghi DS trước khi truy cập biến trong đoạn dữ liệu?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Vì DS quyết định địa chỉ cơ sở của đoạn dữ liệu mặc định.", correct: true },
+          { key: "B", text: "Vì DS chứa kết quả cộng.", correct: false },
+          { key: "C", text: "Vì DS là thanh ghi cờ.", correct: false },
+          { key: "D", text: "Vì DS tự động bằng CS trong mọi chương trình.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Địa chỉ vật lý dữ liệu = DS × 16 + Offset. Nếu DS chưa trỏ đúng phân đoạn dữ liệu thì truy cập biến sẽ sai ô nhớ."
+      },
+      {
+        id: "gk_45",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Định nghĩa: 'Vi xử lý là bộ xử lý trung tâm được tích hợp trên một vi mạch'. Phát biểu này là:",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Đúng", correct: true },
+          { key: "B", text: "Sai, vi xử lý là một hệ thống máy tính hoàn chỉnh.", correct: false },
+          { key: "C", text: "Sai, vi xử lý chỉ là một phần nhỏ của ALU.", correct: false },
+          { key: "D", text: "Sai, vi xử lý không nhất thiết phải tích hợp trên một vi mạch.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Định nghĩa chuẩn: Vi xử lý (Microprocessor) là CPU được tích hợp trọn vẹn trên một chip vi mạch bán dẫn duy nhất (IC)."
+      },
+      {
+        id: "gk_46",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Lệnh JE thường kiểm tra điều kiện nào sau lệnh CMP?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "CF = 1", correct: false },
+          { key: "B", text: "DF = 1", correct: false },
+          { key: "C", text: "ZF = 1 (Zero Flag)", correct: true },
+          { key: "D", text: "IF = 0", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "JE (Jump if Equal) nhảy khi hai số so sánh bằng nhau, tức hiệu bằng 0, cờ ZF = 1."
+      },
+      {
+        id: "gk_47",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Lệnh 'LEA BX, [SI+5]' trong 8086 làm gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Nạp giá trị dữ liệu từ địa chỉ SI+5 vào BX.", correct: false },
+          { key: "B", text: "Cộng 5 vào SI và lưu kết quả vào SI.", correct: false },
+          { key: "C", text: "Tính toán địa chỉ hiệu dụng SI+5 và lưu địa chỉ đó vào BX.", correct: true },
+          { key: "D", text: "Thực hiện phép trừ và lưu kết quả vào BX.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "LEA (Load Effective Address) tính toán biểu thức địa chỉ hiệu dụng trong ngoặc vuông và chuyển thẳng giá trị địa chỉ đó vào thanh ghi đích."
+      },
+      {
+        id: "gk_48",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Trong kiến trúc pipeline, 'control hazard' (xung đột điều khiển) thường xảy ra khi nào?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Khi bộ nhớ chính bị đầy.", correct: false },
+          { key: "B", text: "Khi hai lệnh cùng ghi vào một thanh ghi.", correct: false },
+          { key: "C", text: "Khi ALU gặp lỗi trong quá trình tính toán.", correct: false },
+          { key: "D", text: "Khi CPU gặp lệnh rẽ nhánh và chưa biết lệnh nào sẽ được thực thi tiếp theo.", correct: true },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Control hazard xảy ra do các lệnh nhảy / rẽ nhánh làm thay đổi dòng nạp lệnh PC/IP của pipeline."
+      },
+      {
+        id: "gk_49",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Lệnh 'LEA AX, [BX+SI]' nạp gì vào AX?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Địa chỉ hiệu dụng BX + SI.", correct: true },
+          { key: "B", text: "Dữ liệu tại địa chỉ BX+SI.", correct: false },
+          { key: "C", text: "Mã lệnh tại CS:IP.", correct: false },
+          { key: "D", text: "Trạng thái cờ Carry.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "LEA chỉ tính toán tổng địa chỉ hiệu dụng EA = BX + SI rồi gán vào AX, không truy xuất dữ liệu trong bộ nhớ RAM."
+      },
+      {
+        id: "gk_50",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Địa chỉ logic 1234h:0010h của 8086 tương ứng với địa chỉ vật lý nào?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "12440h", correct: false },
+          { key: "B", text: "1234Ah", correct: false },
+          { key: "C", text: "12350h", correct: true },
+          { key: "D", text: "00100h", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Địa chỉ vật lý = Segment × 10h + Offset = 12340h + 0010h = 12350h."
+      },
+      {
+        id: "gk_51",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Quá trình tạo ra một tệp thực thi cho 8086 từ mã nguồn thường bao gồm các bước chính nào? (Chọn các phương án đúng)",
+        isMulti: true,
+        options: [
+          { key: "A", text: "Biên dịch (Compilation) hoặc Dịch mã (Assembly).", correct: true },
+          { key: "B", text: "Liên kết (Linking).", correct: true },
+          { key: "C", text: "Nạp (Loading) khi chạy.", correct: false },
+          { key: "D", text: "Gỡ lỗi (Debugging).", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Để sinh ra file thực thi (.EXE/.COM), hai bước xây dựng bắt buộc là: Assembly/Compile (tạo file .OBJ) và Link (kết nối các obj/thư viện thành file chạy)."
+      },
+      {
+        id: "gk_52",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Lệnh 'LEA SI, [BX+DI+10h]' trong 8086 có tác dụng gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Nạp giá trị 10h vào thanh ghi SI.", correct: false },
+          { key: "B", text: "Cộng giá trị của BX, DI và 10h, sau đó lưu kết quả vào thanh ghi SI.", correct: true },
+          { key: "C", text: "Đọc dữ liệu từ địa chỉ bộ nhớ (BX+DI+10h) và nạp vào SI.", correct: false },
+          { key: "D", text: "Tăng giá trị của BX và DI lên 10h.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "LEA tính giá trị địa chỉ hiệu dụng EA = BX + DI + 10h và lưu trực tiếp kết quả vào SI."
+      },
+      {
+        id: "gk_53",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Phép toán XOR hai số nhị phân 1011₂ và 0101₂ cho kết quả là:",
+        isMulti: false,
+        options: [
+          { key: "A", text: "1110₂", correct: true },
+          { key: "B", text: "1010₂", correct: false },
+          { key: "C", text: "1100₂", correct: false },
+          { key: "D", text: "0110₂", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "1011₂ XOR 0101₂: (1^0)=1, (0^1)=1, (1^0)=1, (1^1)=0 => 1110₂."
+      },
+      {
+        id: "gk_54",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Nếu hệ thống có 16 KB ROM bắt đầu tại địa chỉ 0000h, địa chỉ cuối cùng của ROM là gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "3FFFh", correct: true },
+          { key: "B", text: "4000h", correct: false },
+          { key: "C", text: "7FFFh", correct: false },
+          { key: "D", text: "FFFFh", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "16 KB = 16 × 1024 = 16384 byte = 4000h byte. Địa chỉ cuối = 0000h + 4000h - 1 = 3FFFh."
+      },
+      {
+        id: "gk_55",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Nếu DS = 2000h, BX = 1000h, SI = 0500h, Displacement = 0100h. Địa chỉ vật lý được truy cập bởi lệnh 'MOV AX, [BX+SI+0100h]' là bao nhiêu?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "21600h", correct: true },
+          { key: "B", text: "21500h", correct: false },
+          { key: "C", text: "21000h", correct: false },
+          { key: "D", text: "20600h", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "EA = BX + SI + 0100h = 1000h + 0500h + 0100h = 1600h. Địa chỉ vật lý = DS × 10h + EA = 20000h + 1600h = 21600h."
+      },
+      {
+        id: "gk_56",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Lệnh 'MOV [BX+DI+5], AX' trong 8086 thực hiện những hành động nào? (Chọn các phương án đúng)",
+        isMulti: true,
+        options: [
+          { key: "A", text: "Đọc giá trị từ thanh ghi nguồn AX.", correct: true },
+          { key: "B", text: "Tính toán địa chỉ bộ nhớ hiệu dụng dựa trên BX, DI và hằng số 5.", correct: true },
+          { key: "C", text: "Ghi giá trị từ thanh ghi AX vào địa chỉ bộ nhớ đã tính.", correct: true },
+          { key: "D", text: "Tăng giá trị của thanh ghi BX và DI sau khi ghi.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Lệnh MOV không tự động tăng con trỏ (chỉ có các lệnh chuỗi như MOVSB/STOSB mới tự động thay đổi con trỏ qua cờ DF)."
+      },
+      {
+        id: "gk_57",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Nếu kết quả của phép toán AND giữa hai toán hạng bằng 0, cờ trạng thái nào sẽ được bật lên 1?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "CF", correct: false },
+          { key: "B", text: "OF", correct: false },
+          { key: "C", text: "ZF (Zero Flag)", correct: true },
+          { key: "D", text: "SF", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Cờ ZF = 1 khi kết quả của phép toán bằng 0."
+      },
+      {
+        id: "gk_58",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Trong một hệ thống vi xử lý, các loại bộ nhớ nào có thể được CPU truy cập trực tiếp trong không gian địa chỉ? (Chọn các câu đúng)",
+        isMulti: true,
+        options: [
+          { key: "A", text: "Bộ nhớ RAM (Random Access Memory).", correct: true },
+          { key: "B", text: "Bộ nhớ ROM (Read-Only Memory).", correct: true },
+          { key: "C", text: "Bộ nhớ Cache.", correct: true },
+          { key: "D", text: "Bộ nhớ ảo (Virtual Memory - là cơ chế phần mềm/trang đĩa).", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "CPU truy cập trực tiếp các cấp bộ nhớ vật lý: Cache, RAM, ROM qua bus hệ thống."
+      },
+      {
+        id: "gk_59",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Lệnh 'MOV AX, [BP+DI+0A00h]' sử dụng chế độ định địa chỉ nào và thanh ghi đoạn mặc định nào?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Base-Indexed with Displacement, thanh ghi đoạn mặc định SS.", correct: true },
+          { key: "B", text: "Base-Indexed with Displacement, thanh ghi đoạn mặc định DS.", correct: false },
+          { key: "C", text: "Register Indirect, thanh ghi đoạn mặc định SS.", correct: false },
+          { key: "D", text: "Direct, thanh ghi đoạn mặc định DS.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Khi trong biểu thức địa chỉ xuất hiện con trỏ BP (Base Pointer), phân đoạn mặc định được sử dụng luôn là SS (Stack Segment) thay vì DS."
+      },
+      {
+        id: "gk_60",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Trong CPU, đơn vị Shifter thường hỗ trợ các thao tác nào?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Cấp phát địa chỉ IP.", correct: false },
+          { key: "B", text: "Đọc nhiệt độ CPU.", correct: false },
+          { key: "C", text: "Dịch trái, dịch phải hoặc quay vòng các bit.", correct: true },
+          { key: "D", text: "Lưu trữ chương trình vĩnh viễn.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Shifter (hoặc Barrel Shifter) hỗ trợ các lệnh dịch bit (SHL, SHR, SAL, SAR) và quay bit (ROL, ROR, RCL, RCR)."
+      },
+      {
+        id: "gk_61",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Trong ngôn ngữ C, khi một hàm được gọi, thông tin về các tham số và biến cục bộ của hàm đó thường được cấp phát và lưu trữ ở đâu?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Heap", correct: false },
+          { key: "B", text: "Stack (Ngăn xếp)", correct: true },
+          { key: "C", text: "Data Segment", correct: false },
+          { key: "D", text: "Code Segment", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Biến cục bộ tự động (auto) và tham số hàm được cấp phát trên Stack Frame của hàm đó khi thực thi."
+      },
+      {
+        id: "gk_62",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Muốn in chuỗi bằng DOS INT 21h, hàm AH = 09h yêu cầu chuỗi phải kết thúc bằng ký tự nào?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "NULL (00h)", correct: false },
+          { key: "B", text: "Dấu chấm phẩy (;)", correct: false },
+          { key: "C", text: "Ký tự '$' (mã ASCII 24h)", correct: true },
+          { key: "D", text: "Dấu cách", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Đặc thù của DOS ngắt 21h hàm 09h là chuỗi văn bản trỏ bởi DS:DX bắt buộc phải được kết thúc bằng ký tự '$'."
+      },
+      {
+        id: "gk_63",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Nếu bộ nhớ RAM 32 KB bắt đầu tại địa chỉ 8000h, địa chỉ cuối cùng của vùng RAM này là gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "FFFFh", correct: true },
+          { key: "B", text: "EFFFh", correct: false },
+          { key: "C", text: "C000h", correct: false },
+          { key: "D", text: "8FFFh", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "32 KB = 32 × 1024 = 32768 byte = 8000h byte. Địa chỉ kết thúc = 8000h + 8000h - 1 = FFFFh."
+      },
+      {
+        id: "gk_64",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Kỹ thuật Inline Assembly trong C thường được sử dụng nhằm mục đích gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Tăng dung lượng RAM.", correct: false },
+          { key: "B", text: "Chèn trực tiếp mã lệnh Assembly vào mã nguồn C để tối ưu hoặc thao tác phần cứng cấp thấp.", correct: true },
+          { key: "C", text: "Tạo biến toàn cục.", correct: false },
+          { key: "D", text: "Thay thế Linker.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Inline assembly (từ khóa `__asm__` hoặc `__asm`) cho phép viết hợp ngữ ngay trong C để điều khiển trực tiếp CPU và cổng phần cứng."
+      },
+      {
+        id: "gk_65",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Mạch giải mã địa chỉ (Address Decoder) trong các hệ vi xử lý dùng để làm gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Tăng tốc độ tính toán của ALU.", correct: false },
+          { key: "B", text: "Chọn chip nhớ (CS) hoặc thiết bị ngoại vi tương ứng với địa chỉ mà CPU đang truy cập.", correct: true },
+          { key: "C", text: "Chuyển mã ASCII sang nhị phân.", correct: false },
+          { key: "D", text: "Giảm điện áp nguồn cấp.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Address Decoder giải mã các đường bus địa chỉ cao để kích hoạt chân Chip Select (CS) của từng chip nhớ hoặc cổng tương ứng."
+      },
+      {
+        id: "gk_66",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Bộ nhớ Cache trong CPU có vai trò chính là gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Lưu tập tin vĩnh viễn.", correct: false },
+          { key: "B", text: "Tạo âm thanh hệ thống.", correct: false },
+          { key: "C", text: "Lưu tạm dữ liệu và lệnh thường xuyên dùng để giảm độ trễ truy cập bộ nhớ RAM chính.", correct: true },
+          { key: "D", text: "Điều khiển máy in trực tiếp.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Cache làm bằng SRAM tốc độ cao giúp thu hẹp chênh lệch tốc độ giữa CPU siêu nhanh và RAM chính chậm hơn."
+      },
+      {
+        id: "gk_67",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Đoạn mã C 'x = x >> 1;' với biến không dấu x lưu trong thanh ghi AX tương ứng với lệnh Assembly 8086 nào?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "SHL AX, 1", correct: false },
+          { key: "B", text: "SAR AX, 1", correct: false },
+          { key: "C", text: "ROL AX, 1", correct: false },
+          { key: "D", text: "SHR AX, 1", correct: true },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Biến không dấu (unsigned) dịch phải dùng phép dịch logic SHR (Shift Right, chèn 0 vào bit MSB). Nếu là có dấu thì dùng SAR."
+      },
+      {
+        id: "gk_68",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Trong kiến trúc pipeline, 'Data Hazard' (xung đột dữ liệu) xảy ra khi nào?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Khi một lệnh cần kết quả của lệnh trước đó mà lệnh trước chưa kịp ghi kết quả xong.", correct: true },
+          { key: "B", text: "Khi hai lệnh cùng truy cập vào một thanh ghi đồng thời.", correct: false },
+          { key: "C", text: "Khi bộ nhớ cache bị đầy.", correct: false },
+          { key: "D", text: "Khi có lỗi trong giai đoạn giải mã lệnh.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Data Hazard (điển hình là Read-After-Write RAW) xuất hiện do phụ thuộc dữ liệu giữa các lệnh liền kề trong đường ống."
+      },
+      {
+        id: "gk_69",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Trong 8086, cặp thanh ghi nào xác định địa chỉ vật lý của lệnh kế tiếp cần thực thi?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "DS:SI", correct: false },
+          { key: "B", text: "CS:IP", correct: true },
+          { key: "C", text: "SS:SP", correct: false },
+          { key: "D", text: "ES:DI", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Code Segment (CS) và Instruction Pointer (IP) kết hợp theo công thức CS × 10h + IP để tạo địa chỉ nạp lệnh."
+      },
+      {
+        id: "gk_70",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Khi một ngắt cứng được chấp nhận trong 8086, CPU sẽ làm gì trước tiên?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Lưu địa chỉ của lệnh tiếp theo vào stack và nhảy đến địa chỉ cố định.", correct: false },
+          { key: "B", text: "Hoàn tất việc thực thi lệnh hiện tại trước khi chuyển sang chu trình phục vụ ngắt.", correct: true },
+          { key: "C", text: "Gửi tín hiệu ACK về thiết bị ngắt.", correct: false },
+          { key: "D", text: "Tải địa chỉ trình xử lý ngắt từ bảng vector vào IP và CS.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "CPU không bao giờ hủy ngang lệnh đang dở; nó luôn thực thi xong lệnh hiện hành rồi mới kiểm tra và tiếp nhận ngắt."
+      },
+      {
+        id: "gk_71",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Trong 8086, lệnh 'ADD AX, 0001h' có kích thước mã máy là bao nhiêu byte?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "1 byte", correct: false },
+          { key: "B", text: "2 byte", correct: false },
+          { key: "C", text: "3 byte", correct: true },
+          { key: "D", text: "4 byte", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Opcode đặc biệt cho 'ADD AX, imm16' là 05h (1 byte), theo sau là 2 byte hằng số trực tiếp (01h 00h) => Tổng cộng 3 byte."
+      },
+      {
+        id: "gk_72",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Kiến trúc tập lệnh RISC thường có xu hướng thiết kế như thế nào?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Tập lệnh chỉ dùng cho đồ họa.", correct: false },
+          { key: "B", text: "Không dùng thanh ghi.", correct: false },
+          { key: "C", text: "Tập lệnh đơn giản, chiều dài cố định, dễ thiết kế đường ống pipeline.", correct: true },
+          { key: "D", text: "Mỗi lệnh bắt buộc dài một trang.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "RISC (Reduced Instruction Set Computer) ưu tiên tập lệnh tinh giản, định dạng đều đặn, thực thi hầu hết trong 1 chu kỳ để tối ưu pipelining."
+      },
+      {
+        id: "gk_73",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Lệnh 'STI' trong 8086 có chức năng gì?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Ngắt việc thực thi chương trình hiện tại.", correct: false },
+          { key: "B", text: "Cho phép CPU tiếp nhận các ngắt phần cứng che được (Set IF = 1).", correct: true },
+          { key: "C", text: "Cho phép xử lý các ngắt mềm.", correct: false },
+          { key: "D", text: "Thiết lập cờ Zero.", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "STI (Set Interrupt Flag) đặt cờ IF = 1, cho phép CPU chấp nhận các yêu cầu ngắt từ chân INTR."
+      },
+      {
+        id: "gk_74",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Một chương trình gồm nhiều module vẫn còn các tham chiếu chưa xác định địa chỉ sau khi dịch. Thành phần nào chịu trách nhiệm kết nối và xử lý vấn đề này để tạo file thực thi?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "Assembler", correct: false },
+          { key: "B", text: "Linker (Trình liên kết)", correct: true },
+          { key: "C", text: "Loader", correct: false },
+          { key: "D", text: "CPU", correct: false },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Linker kết nối các file đối tượng .OBJ, giải quyết các tham chiếu ngoại biên (external symbols) và gán địa chỉ phân đoạn cụ thể."
+      },
+      {
+        id: "gk_75",
+        source: "gkvxl",
+        sourceTitle: "Giữa kỳ VXL",
+        question: "Địa chỉ hiệu dụng (EA) của toán hạng '[BX+SI+10h]' được tính bằng biểu thức nào?",
+        isMulti: false,
+        options: [
+          { key: "A", text: "CS + IP + 10h", correct: false },
+          { key: "B", text: "AX + DX", correct: false },
+          { key: "C", text: "SP - BP", correct: false },
+          { key: "D", text: "BX + SI + 10h", correct: true },
+          { key: "E", text: "Đáp án khác", correct: false }
+        ],
+        explanation: "Địa chỉ hiệu dụng là tổng giá trị thanh ghi cơ sở BX, thanh ghi chỉ số SI và khoảng dịch chuyển 10h."
+      }
+    ];
+
+    // State
+    let currentFilter = 'all';
+    let onlyWrong = false;
+    let userAnswers = {}; // { qId: ['A', 'B'] }
+    let searchTerm = '';
+
+    function init() {
+      renderQuiz();
+      updateStats();
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      onlyWrong = false;
+      document.querySelectorAll('.filter-tab').forEach(btn => {
+        btn.classList.remove('bg-indigo-600', 'text-white');
+        btn.classList.add('bg-slate-100', 'text-slate-600');
+      });
+      const activeBtn = document.getElementById(`tab-${filter}`);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-indigo-600', 'text-white');
+        activeBtn.classList.remove('bg-slate-100', 'text-slate-600');
+      }
+      renderQuiz();
+    }
+
+    function toggleOnlyWrong() {
+      onlyWrong = !onlyWrong;
+      const wrongBtn = document.getElementById('tab-wrong');
+      if (onlyWrong) {
+        wrongBtn.classList.add('bg-rose-600', 'text-white');
+        wrongBtn.classList.remove('bg-slate-100', 'text-rose-600');
+      } else {
+        wrongBtn.classList.remove('bg-rose-600', 'text-white');
+        wrongBtn.classList.add('bg-slate-100', 'text-rose-600');
+      }
+      renderQuiz();
+    }
+
+    function handleSearch() {
+      searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
+      renderQuiz();
+    }
+
+    function isQuestionWrong(q) {
+      const selected = userAnswers[q.id];
+      if (!selected || selected.length === 0) return false;
+      const correctKeys = q.options.filter(o => o.correct).map(o => o.key);
+      if (selected.length !== correctKeys.length) return true;
+      return !correctKeys.every(k => selected.includes(k));
+    }
+
+    function isQuestionAnswered(qId) {
+      return userAnswers[qId] && userAnswers[qId].length > 0;
+    }
+
+    function renderQuiz() {
+      const container = document.getElementById('quiz-list');
+      container.innerHTML = '';
+
+      let filtered = quizData.filter(q => {
+        if (currentFilter !== 'all' && q.source !== currentFilter) return false;
+        if (onlyWrong && !isQuestionWrong(q)) return false;
+        if (searchTerm) {
+          const matchQ = q.question.toLowerCase().includes(searchTerm);
+          const matchOpt = q.options.some(o => o.text.toLowerCase().includes(searchTerm));
+          if (!matchQ && !matchOpt) return false;
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white rounded-xl p-8 text-center text-slate-500 border border-slate-200">
+            <i class="fa-solid fa-folder-open text-4xl mb-3 text-slate-300"></i>
+            <p class="text-base font-medium">Không tìm thấy câu hỏi phù hợp.</p>
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach((q, index) => {
+        const answered = isQuestionAnswered(q.id);
+        const selected = userAnswers[q.id] || [];
+        const isWrong = isQuestionWrong(q);
+        const isFullyCorrect = answered && !isWrong;
+
+        const card = document.createElement('div');
+        card.className = `bg-white rounded-xl shadow-sm border p-5 transition ${
+          answered ? (isFullyCorrect ? 'border-emerald-300 bg-emerald-50/20' : 'border-rose-300 bg-rose-50/20') : 'border-slate-200 hover:border-slate-300'
+        }`;
+
+        // Header info
+        let badgeColor = q.source === 'quiz1' ? 'bg-blue-100 text-blue-700' : (q.source === 'quiz2' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700');
+        
+        let headerHtml = `
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full ${badgeColor}">${q.sourceTitle}</span>
+              ${q.isMulti ? '<span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600"><i class="fa-solid fa-list-check mr-1"></i>Chọn nhiều</span>' : ''}
+            </div>
+            <div class="text-xs font-bold ${answered ? (isFullyCorrect ? 'text-emerald-600' : 'text-rose-600') : 'text-slate-400'}">
+              ${answered ? (isFullyCorrect ? '<i class="fa-solid fa-circle-check mr-1"></i>CHÍNH XÁC' : '<i class="fa-solid fa-circle-xmark mr-1"></i>CHƯA ĐÚNG') : 'Chưa làm'}
+            </div>
+          </div>
+          <h3 class="font-semibold text-slate-800 text-base leading-snug mb-4">
+            <span class="text-indigo-600 font-bold mr-1">#${index + 1}.</span> ${q.question}
+          </h3>
+        `;
+
+        // Options
+        let optionsHtml = `<div class="space-y-2.5">`;
+        q.options.forEach(opt => {
+          const isSelected = selected.includes(opt.key);
+          let optStyle = "border-slate-200 hover:bg-slate-50 text-slate-700";
+          let iconHtml = `<span class="w-6 h-6 rounded-full border border-slate-300 flex items-center justify-center text-xs font-semibold text-slate-500 mr-3 shrink-0">${opt.key}</span>`;
+
+          if (answered) {
+            if (opt.correct) {
+              optStyle = "border-emerald-500 bg-emerald-100/70 text-emerald-900 font-medium";
+              iconHtml = `<span class="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs mr-3 shrink-0"><i class="fa-solid fa-check"></i></span>`;
+            } else if (isSelected && !opt.correct) {
+              optStyle = "border-rose-400 bg-rose-100/70 text-rose-900";
+              iconHtml = `<span class="w-6 h-6 rounded-full bg-rose-600 text-white flex items-center justify-center text-xs mr-3 shrink-0"><i class="fa-solid fa-xmark"></i></span>`;
+            } else {
+              optStyle = "border-slate-200 opacity-60 text-slate-500";
+            }
+          }
+
+          optionsHtml += `
+            <div onclick="selectOption('${q.id}', '${opt.key}')" class="flex items-center p-3 rounded-lg border text-sm cursor-pointer transition select-none ${optStyle}">
+              ${iconHtml}
+              <div class="flex-1">${opt.text}</div>
+            </div>
+          `;
+        });
+        optionsHtml += `</div>`;
+
+        // Explanation (Hiển thị ngay khi người dùng chọn đáp án)
+        let explanationHtml = '';
+        if (answered) {
+          const correctAnswersText = q.options.filter(o => o.correct).map(o => `${o.key}. ${o.text}`).join(' | ');
+          explanationHtml = `
+            <div class="mt-4 p-3.5 rounded-lg bg-indigo-50/70 border border-indigo-200 text-xs md:text-sm text-slate-700">
+              <div class="font-bold text-indigo-900 mb-1 flex items-center gap-1.5">
+                <i class="fa-solid fa-lightbulb text-amber-500"></i> Đáp án đúng: ${correctAnswersText}
+              </div>
+              <div class="text-slate-600 leading-relaxed">${q.explanation}</div>
+            </div>
+          `;
+        }
+
+        card.innerHTML = headerHtml + optionsHtml + explanationHtml;
+        container.appendChild(card);
+      });
+    }
+
+    function selectOption(qId, optKey) {
+      const q = quizData.find(item => item.id === qId);
+      if (!q) return;
+
+      if (!userAnswers[qId]) {
+        userAnswers[qId] = [];
+      }
+
+      if (q.isMulti) {
+        // Hỗ trợ chọn/bỏ chọn nhiều đáp án
+        if (userAnswers[qId].includes(optKey)) {
+          userAnswers[qId] = userAnswers[qId].filter(k => k !== optKey);
+        } else {
+          userAnswers[qId].push(optKey);
+        }
+      } else {
+        // Trắc nghiệm 1 đáp án: Chọn là chốt ngay
+        userAnswers[qId] = [optKey];
+      }
+
+      updateStats();
+      renderQuiz();
+    }
+
+    function updateStats() {
+      const total = quizData.length;
+      let answeredCount = 0;
+      let correctCount = 0;
+
+      quizData.forEach(q => {
+        if (isQuestionAnswered(q.id)) {
+          answeredCount++;
+          if (!isQuestionWrong(q)) {
+            correctCount++;
+          }
+        }
+      });
+
+      document.getElementById('stat-total').innerText = total;
+      document.getElementById('stat-answered').innerText = answeredCount;
+      document.getElementById('stat-correct').innerText = correctCount;
+      document.getElementById('stat-percent').innerText = answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) + '%' : '0%';
+
+      // Cập nhật số lượng trên các tab
+      document.getElementById('count-all').innerText = total;
+      document.getElementById('count-quiz1').innerText = quizData.filter(q => q.source === 'quiz1').length;
+      document.getElementById('count-quiz2').innerText = quizData.filter(q => q.source === 'quiz2').length;
+      document.getElementById('count-gkvxl').innerText = quizData.filter(q => q.source === 'gkvxl').length;
+    }
+
+    function resetAll() {
+      if (confirm("Bạn có chắc chắn muốn xóa toàn bộ kết quả đã làm để ôn tập lại từ đầu?")) {
+        userAnswers = {};
+        onlyWrong = false;
+        searchTerm = '';
+        document.getElementById('search-input').value = '';
+        setFilter('all');
+        updateStats();
+      }
+    }
+
+    // Khởi chạy khi load trang
+    window.onload = init;
+  </script>
+</body>
+</html>
+```eof
+
+### Tóm tắt các tính năng của công cụ ôn tập:
+1. **Phản hồi tức thì (Instant Feedback):** Ngay khi chọn một đáp án, câu hỏi tự động kiểm tra, hiển thị màu xanh lá cho đáp án đúng, màu đỏ nếu bạn chọn sai, và mở hộp giải thích chi tiết đáp án.
+2. **Hỗ trợ câu hỏi đơn và chọn nhiều:** Nhận diện và xử lý chuẩn xác cả dạng câu hỏi đơn lẻ lẫn câu hỏi chọn nhiều đáp án đúng (từ Quiz 1 & Đề giữa kỳ).
+3. **Phân loại theo đề & Tìm kiếm:** Cho phép chuyển tab ôn riêng theo từng tài liệu (**Quiz 1**, **Quiz 2**, **Giữa kỳ VXL**) hoặc gõ từ khóa thanh ghi/mã lệnh để tìm câu hỏi tương ứng.
+4. **Lọc câu làm sai:** Nút **"Xem câu sai"** giúp bạn gom lại toàn bộ các câu vừa trả lời chưa chính xác để ôn tập kỹ lưỡng.
+
+Bạn chỉ cần lưu tệp `.html` này và mở trực tiếp bằng bất kỳ trình duyệt nào (Chrome, Edge, Firefox, Cốc Cốc) trên máy tính hoặc điện thoại để bắt đầu ôn thi. Chúc bạn ôn tập thật tốt và đạt điểm số cao nhất!
